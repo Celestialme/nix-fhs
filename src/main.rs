@@ -2,7 +2,7 @@ use std::process::{Command, Stdio,ChildStdout,ChildStdin};
 extern crate strsim;
 use strsim::levenshtein;
 fn main() {
-    
+    let mut  final_libs=Vec::new();
     let args: Vec<String> = std::env::args().collect();
     let path = &args[1].to_owned();
     let deps = find_unresolved_deps(&path,"");
@@ -26,9 +26,10 @@ for dep in &deps{
     let out_path = std::str::from_utf8(&p.stdout).unwrap().trim();
     let lib = out_path.to_owned() + "/lib";
     let new_deps = find_unresolved_deps(path,&lib);
-    println!("{:?}",new_deps);
+  
     if new_deps.len() < deps.len() {
-      
+      println!("{}=>{}",dep,lib);
+      final_libs.push(lib);
       break
     }
 
@@ -37,7 +38,8 @@ for dep in &deps{
    
  
 }
-
+ final_libs.dedup();
+println!("LD_LIBRARY_PATH={}",final_libs.join(":"));
 }
 
 
