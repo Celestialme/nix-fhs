@@ -15,12 +15,13 @@ fn main() {
        }
  println!("{:?}",deps);
 for dep in deps{
-    let  p = Command::new("nix-locate").args(["--db","./db"]).arg("--top-level").arg(&dep)
+    let  p = Command::new("nix-locate").args(["--db","./db"]).args(["--top-level","--minimal"]).arg(&dep)
     .output()
     .expect("failed to execute child");
    
    let res:Vec<String>=  std::str::from_utf8(&p.stdout).unwrap().trim().split("\n").map(|s| s.to_string()).collect();
-   println!("{:?}",res[0]);
+   
+   println!("{}--{:?}",dep,res);
 }
 
 }
