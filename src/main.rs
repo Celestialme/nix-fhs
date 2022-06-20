@@ -1,4 +1,6 @@
 use std::process::{Command, Stdio,ChildStdout,ChildStdin};
+extern crate strsim;
+use strsim::levenshtein;
 fn main() {
     let re = regex::Regex::new(r"(.*)=>\s*not found").unwrap();
     let args: Vec<String> = std::env::args().collect();
@@ -19,9 +21,11 @@ for dep in deps{
     .output()
     .expect("failed to execute child");
    
-   let res:Vec<String>=  std::str::from_utf8(&p.stdout).unwrap().trim().split("\n").map(|s| s.to_string()).collect();
+   let mut res:Vec<String>=  std::str::from_utf8(&p.stdout).unwrap().trim().split("\n").map(|s| s.to_string()).collect();
    
+     res.sort_by(|a,b| levenshtein(&dep,&a).cmp(&levenshtein(&dep,&b)));
    println!("{}--{:?}",dep,res);
+ 
 }
 
 }

@@ -18,3 +18,4 @@
       pkgs.nix-index
      ];
 }
+# http://ftp.de.debian.org/debian/pool/main/h/htop/htop_3.2.1-1_amd64.deb
