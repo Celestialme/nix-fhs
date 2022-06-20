@@ -7,7 +7,7 @@ fn main() {
     let path = &args[1].to_owned();
     let deps = find_unresolved_deps(&path,"");
  println!("{:?}",deps);
-for dep in deps{
+for dep in &deps{
     let  p = Command::new("nix-locate").args(["--db","./db"]).args(["--top-level","--minimal"]).arg(&dep)
     .output()
     .expect("failed to execute child");
@@ -16,16 +16,22 @@ for dep in deps{
    
    pkgs.sort_by(|a,b| levenshtein(&dep,&a).cmp(&levenshtein(&dep,&b)));
 
-   println!("{:?}",pkgs);
+  //  println!("{:?}",pkgs);
   for pkg in &pkgs{
     
     let  p = Command::new("nix-build").arg("--no-link").arg("<nixpkgs>").arg("-A").arg(&pkg)
     .output()
     .expect("failed to execute child");
     
-    let outPath = std::str::from_utf8(&p.stdout).unwrap().trim();
+    let out_path = std::str::from_utf8(&p.stdout).unwrap().trim();
+    let lib = out_path.to_owned() + "/lib";
+    let new_deps = find_unresolved_deps(path,&lib);
+    println!("{:?}",new_deps);
+    if new_deps.len() < deps.len() {
+      
+      break
+    }
 
-    println!("{}",outPath);
   }
 
    
@@ -42,7 +48,6 @@ fn find_unresolved_deps(path:&str,env:&str)->Vec<String>{
   .expect("failed to execute child");
 
     let res =  std::str::from_utf8(&p.stdout).unwrap().trim().replace("\t","");
-
     let mut deps = Vec::new();
  
     for caps in re.captures_iter(&res) {
