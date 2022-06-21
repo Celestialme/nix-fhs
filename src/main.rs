@@ -4,9 +4,11 @@ use strsim::levenshtein;
 fn main() {
     let mut  final_libs=Vec::new();
     let args: Vec<String> = std::env::args().collect();
-    let path = &args[1].to_owned();
-    let deps = find_unresolved_deps(&path,"");
- println!("{:?}",deps);
+    let mut paths = vec![args[1].to_owned()];
+    paths.append(&mut get_all_shared_libs("/home/fhs/firefox"));
+    println!("{:?}",paths);
+for path in paths{
+    let deps = find_unresolved_deps(&path,&final_libs.join(":"));
 for dep in &deps{
     let pkgs = get_pkgs(dep);
 
@@ -14,7 +16,7 @@ for dep in &deps{
   for pkg in &pkgs{
     let lib =build_deps(&pkg);
     
-    let new_deps = find_unresolved_deps(path,&lib);
+    let new_deps = find_unresolved_deps(&path,&(final_libs.join(":")+":"+&lib));
   
     if new_deps.len() < deps.len() {
       println!("{}=>{}",dep,lib);
@@ -24,44 +26,12 @@ for dep in &deps{
 
   }
 
-   
+}
  
 }
  final_libs.dedup();
 println!("LD_LIBRARY_PATH={}",final_libs.join(":"));
-let error=true;
 
-
-'out: while error{
-  // println!("{:?}",final_libs);
-      let dep = check_extra_dep("",&final_libs.join(":"));
-
-      let pkgs = get_pkgs(&dep);
-
-
-
-      for pkg in &pkgs{
-        
-        let lib =build_deps(&pkg);
-        println!("46 {}",lib);
-        let new_dep = check_extra_dep("",&(final_libs.join(":")+":"+&lib));
-        println!("48 {}",new_dep);
-        if new_dep =="None" {
-          final_libs.push(lib);
-          break 'out;
-        }
-        if new_dep != dep {
-          println!("{}=>{}",dep,lib);
-          final_libs.push(lib);
-          break
-        }
-    
-      }
-    
-      
-  }
-
-  println!("LD_LIBRARY_PATH={}",final_libs.join(":"));
 
 }
 
@@ -105,16 +75,10 @@ fn get_pkgs(dep:&str)->Vec<String>{
 }
 
 
-fn check_extra_dep(path:&str,env:&str)->String{
-  let  p = Command::new("./firefox/usr/bin/firefox").env("LD_LIBRARY_PATH",env)
+fn get_all_shared_libs(parent_folder:&str)->Vec<String>{
+  let  p = Command::new("find").args([&parent_folder,"-name","*.so"])
   .output()
   .expect("failed to execute child");
-  let re = regex::Regex::new(r"\n(.*):\s*cannot open shared object file").unwrap();
-    let res = std::str::from_utf8(&p.stderr).unwrap().trim().replace("\t","");
-    println!("{}",res);
-    let dep = match re.captures(&res){
-      Some(x)=>x[1].to_owned(),
-      None =>"None".to_owned()
-    };
-    dep
+ 
+  std::str::from_utf8(&p.stdout).unwrap().trim().split("\n").map(|s| s.to_string()).collect()
 }
