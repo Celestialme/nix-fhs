@@ -47,6 +47,7 @@ let error=true;
         let new_dep = check_extra_dep("",&(final_libs.join(":")+":"+&lib));
         println!("48 {}",new_dep);
         if new_dep =="None" {
+          final_libs.push(lib);
           break 'out;
         }
         if new_dep != dep {
@@ -110,7 +111,7 @@ fn check_extra_dep(path:&str,env:&str)->String{
   .expect("failed to execute child");
   let re = regex::Regex::new(r"\n(.*):\s*cannot open shared object file").unwrap();
     let res = std::str::from_utf8(&p.stderr).unwrap().trim().replace("\t","");
-
+    println!("{}",res);
     let dep = match re.captures(&res){
       Some(x)=>x[1].to_owned(),
       None =>"None".to_owned()
