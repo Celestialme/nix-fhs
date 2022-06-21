@@ -30,19 +30,38 @@ for dep in &deps{
  final_libs.dedup();
 println!("LD_LIBRARY_PATH={}",final_libs.join(":"));
 let error=true;
-let re = regex::Regex::new(r"\n(.*):\s*cannot open shared object file").unwrap();
-while error{
-let  p = Command::new("./firefox/usr/bin/firefox")
-  .output()
-  .expect("failed to execute child");
-  
-    let res =  std::str::from_utf8(&p.stderr).unwrap().trim().replace("\t","");
-    let dep = match re.captures(&res){
-      Some(x)=>println!("{:?}",&x[1]),
-      None =>println!("None")
-    };
+
+
+'out: while error{
+  // println!("{:?}",final_libs);
+      let dep = check_extra_dep("",&final_libs.join(":"));
+
+      let pkgs = get_pkgs(&dep);
+
+
+
+      for pkg in &pkgs{
+        
+        let lib =build_deps(&pkg);
+        println!("46 {}",lib);
+        let new_dep = check_extra_dep("",&(final_libs.join(":")+":"+&lib));
+        println!("48 {}",new_dep);
+        if new_dep =="None" {
+          break 'out;
+        }
+        if new_dep != dep {
+          println!("{}=>{}",dep,lib);
+          final_libs.push(lib);
+          break
+        }
     
-}
+      }
+    
+      
+  }
+
+  println!("LD_LIBRARY_PATH={}",final_libs.join(":"));
+
 }
 
 
@@ -82,4 +101,19 @@ fn get_pkgs(dep:&str)->Vec<String>{
    
    pkgs.sort_by(|a,b| levenshtein(&dep,&a).cmp(&levenshtein(&dep,&b)));
    pkgs
+}
+
+
+fn check_extra_dep(path:&str,env:&str)->String{
+  let  p = Command::new("./firefox/usr/bin/firefox").env("LD_LIBRARY_PATH",env)
+  .output()
+  .expect("failed to execute child");
+  let re = regex::Regex::new(r"\n(.*):\s*cannot open shared object file").unwrap();
+    let res = std::str::from_utf8(&p.stderr).unwrap().trim().replace("\t","");
+
+    let dep = match re.captures(&res){
+      Some(x)=>x[1].to_owned(),
+      None =>"None".to_owned()
+    };
+    dep
 }
